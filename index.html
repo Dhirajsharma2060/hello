@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather & Music Recommendation</title>
+    <link rel="style" href="style.css" />
+
+</head>
+<style>
+    /* ... (Your existing styles remain unchanged) ... */
+    body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url('weather.jpg'); /* Replace 'background.jpg' with your image file name */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-family:  Arial;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #recommendationResult {
+            display: none;
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+</style>
+<body>
+    <h1>Weather & Music Recommendation</h1>
+    <form id="recommendForm">
+        <button type="submit">Get Recommendation</button>
+    </form>
+
+    <div id="recommendationResult">
+        <h2>Recommendation for <span id="locationResult"></span>:</h2>
+        <p>Recommended Genre: <span id="genreResult"></span></p>
+        <p>Song Recommendations:</p>
+        <ul id="songList"></ul>
+    </div>
+
+    <script>
+        document.getElementById("recommendForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    // Get user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var latitude = position.coords.latitude;
+                var longitude = position.coords.longitude;
+
+                // Make a fetch request to your FastAPI backend with the location
+                fetch("/recommend", {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: new URLSearchParams({ latitude: latitude, longitude: longitude }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Update the UI with the recommendation result
+                    document.getElementById("locationResult").innerText = "Your location";
+                    document.getElementById("genreResult").innerText = data.recommendation;
+                    
+                    // Display the result section
+                    document.getElementById("recommendationResult").style.display = "block";
+
+                    // Display song recommendations
+                    var songList = document.getElementById("songList");
+                    songList.innerHTML = "";
+                    if (data.tracks && data.tracks.length > 0) {
+                        data.tracks.forEach(track => {
+                            var li = document.createElement("li");
+                            li.innerText = track.name + " by " + track.artists.join(", ");
+                            songList.appendChild(li);
+                        });
+                    } else {
+                        // Handle the case where no tracks are returned
+                        var li = document.createElement("li");
+                        li.innerText = "No song recommendations found.";
+                        songList.appendChild(li);
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                });
+            },
+            function(error) {
+                console.error('Geolocation error:', error);
+                alert("Unable to retrieve your location. Please enable geolocation and try again.");
+            }
+        );
+    } else {
+        alert("Geolocation is not supported by your browser");
+    }
+});
+
+    </script>
+</body>
+</html>
